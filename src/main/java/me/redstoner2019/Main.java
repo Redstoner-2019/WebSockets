@@ -10,36 +10,31 @@ import java.util.Base64;
 
 public class Main {
     public static void main(String[] args) throws Exception {
-        ServerSocket serverSocket = new ServerSocket(99);
-        System.out.println("Listening on port 99...");
-        Socket client = serverSocket.accept();
-        System.out.println("Client connected");
+        ServerSocket serverSocket = new ServerSocket(100);
+        System.out.println("Listening on port 100...");
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        OutputStream out = client.getOutputStream();
-
-        String data;
-        String secWebSocketKey = null;
-        while (!(data = in.readLine()).isEmpty()) {
-            System.out.println("Client request: " + data);
-            if (data.startsWith("Sec-WebSocket-Key")) {
-                secWebSocketKey = data.split(": ")[1];
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ServerSocket serverSocket = new ServerSocket(101);
+                    while (true) {
+                        Socket socket = serverSocket.accept();
+                        System.out.println("Accepted connection from " + socket.getRemoteSocketAddress());
+                        socket.getOutputStream().write("Hello World!\n".getBytes());
+                        socket.getOutputStream().flush();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
-        }
-
-        String acceptKey = generateSecWebSocketAccept(secWebSocketKey);
-
-        // Respond with the handshake acceptance
-        String response = "HTTP/1.1 101 Switching Protocols\r\n"
-                + "Upgrade: websocket\r\n"
-                + "Connection: Upgrade\r\n"
-                + "Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n";
-        out.write(response.getBytes());
-        out.flush();
+        });
+        t.start();
 
         while (true) {
-            String line = readWebSocketFrame(client.getInputStream());
-            System.out.println(line);
+            Socket socket = serverSocket.accept();
+            System.out.println("Client connected");
+            ClientHandler client = new ClientHandler(socket);
         }
     }
 
