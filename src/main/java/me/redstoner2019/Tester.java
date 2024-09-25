@@ -3,11 +3,12 @@ package me.redstoner2019;
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Scanner;
 
 public class Tester {
     public static void main(String[] args) throws IOException {
-        Socket socket = new Socket("158.220.105.209",100);
-        //Socket socket = new Socket("localhost",100);
+        //Socket socket = new Socket("158.220.105.209",100);
+        Socket socket = new Socket("localhost",100);
 
         OutputStream os = socket.getOutputStream();
         InputStream is = socket.getInputStream();
@@ -37,21 +38,45 @@ public class Tester {
 
         BufferedReader bf = new BufferedReader(new InputStreamReader(is));
 
+        System.out.println("Recieving Started");
+
         while (true){
-            /*byte[] read = is.readAllBytes();
-            System.out.println("Recieving");
-            System.out.println(Arrays.toString(read));
-            System.out.println(new String(read));
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }*/
-            System.out.println("Recieving");
-            new String();
-            String line = bf.readLine();
-            System.out.println(line);
-            System.out.println(line.isEmpty());
+            try{
+                byte[] bytes = new byte[4096];
+
+                int recieved = is.read(bytes);
+
+                byte[] b = new byte[recieved];
+
+                System.arraycopy(bytes, 0, b, 0, b.length);
+
+                System.out.println("Recieved " + recieved);
+
+                for (int i = 0; i < recieved; i+=10) {
+                    for (int j = 0; j < 10; j++) {
+                        int k = i + j;
+                        if(k < recieved){
+                            System.out.printf((j == 0 ? "" : "| ") + "%3d ", b[k]);
+                        }
+                    }
+                    System.out.println();
+                }
+
+                System.out.println();
+
+                Scanner sc = new Scanner(new String(b));
+                while(sc.hasNext()){
+                    String line = sc.nextLine();
+                    System.out.println(line);
+                    if(line.isEmpty()){
+                        System.out.println("Connection complete");
+                        break;
+                    }
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                break;
+            }
         }
     }
 }

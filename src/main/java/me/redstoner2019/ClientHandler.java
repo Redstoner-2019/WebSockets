@@ -3,25 +3,24 @@ package me.redstoner2019;
 import java.io.*;
 import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.Random;
-import java.util.Scanner;
 
-public class ClientHandler extends Thread {
-    private Socket socket;
-    private InputStream in;
-    private OutputStream out;
+public class ClientHandler {
+    private final Socket socket;
+    private final InputStream in;
+    private final OutputStream out;
 
     public ClientHandler(Socket client) {
-        this.socket = client;
         try {
+            this.socket = client;
             this.in = client.getInputStream();
             this.out = client.getOutputStream();
 
-            BufferedReader inp = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            OutputStream out = client.getOutputStream();
+            socket.setTcpNoDelay(true);
+
+            BufferedReader inp = new BufferedReader(new InputStreamReader(in));
 
             String data;
             String secWebSocketKey = null;
@@ -33,49 +32,29 @@ public class ClientHandler extends Thread {
             }
 
             String acceptKey = generateSecWebSocketAccept(secWebSocketKey);
-            acceptKey = "kjhkldfghlkjh";
 
-            //String response = "HTTP/1.1 101 Switching Protocols\r\n"
-            //        + "Upgrade: websocket\r\n"
-            //        + "Access-Control-Allow-Origin: *\r\n"
-            //        + "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
-            //        + "Access-Control-Allow-Headers: Content-Type\r\n"
-            //        + "Connection: Upgrade\r\n"
-            //        + "Sec-WebSocket-Accept: " + acceptKey + "\r\n\r\n";
+            String response = "HTTP/1.1 101 Switching Protocols" + System.lineSeparator()
+                    + "Upgrade: websocket" + System.lineSeparator()
+                    + "Access-Control-Allow-Origin: *" + System.lineSeparator()
+                    + "Access-Control-Allow-Methods: GET, POST, OPTIONS" + System.lineSeparator()
+                    + "Access-Control-Allow-Headers: Content-Type" + System.lineSeparator()
+                    + "Connection: Upgrade" + System.lineSeparator()
+                    + "Sec-WebSocket-Accept: " + acceptKey + "\n";
 
-            System.out.println();
+            byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
 
-            String response = "HTTP/1.1 101 Switching Protocol\n"
-                    + "Upgrade: websocket\n"
-                    + "Connection: Upgrade\n"
-                    + "Sec-WebSocket-Accept: " + acceptKey + "\n\n";
-
-            //response = "xjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\nxjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\nxjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\nxjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\nxjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\nxjkdfhgxcj,.hjgjklxdngkljxdhnjgjkxdflhgkljxdfghnxkldjfghnxdfkljfghxdljkfghnxkdjlfghxdljkfghxlidrjhzislrjhtlxdjköfghxdkjfhgxdoölfjhgsdjköflktzlörh\n";
-
-            //String resp = String.format("HTTP/1.1 101 Switching Protocols\nUpgrade: websocket\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", acceptKey);
-
-            String chars = "abcdefghijklmnopqrstuvwxyz";
-
-            /*response = "";
-
-            for (int i = 0; i < 129; i++) {
-                Random r = new Random();
-                response += chars.charAt(r.nextInt(chars.length()));
+            for (int i = 0; i < bytes.length; i+=10) {
+                for (int j = 0; j < 10; j++) {
+                    int k = i + j;
+                    if(k < bytes.length){
+                        System.out.printf((j == 0 ? "" : "| ") + "%3d ", bytes[k]);
+                    }
+                }
+                System.out.println();
             }
 
-            response+="\n\n";*/
-
-            System.out.println(response);
-
-            byte[] d = response.getBytes("UTF-8");
-
-            System.out.println();
-            System.out.println(new String(d));
-            System.out.println(response.length());
-
-            out.write(d);
+            out.write(bytes);
             out.flush();
-            out.close();
 
             System.out.println("Writing and flushing done.");
         } catch (Exception e) {
@@ -85,43 +64,13 @@ public class ClientHandler extends Thread {
 
         System.out.println("Setup done");
         while (true) {
-            System.out.println("Waiting for client request...");
-            String msg = null;
+            /*System.out.println("Waiting for client request...");
             try {
-                msg = Arrays.toString(in.readAllBytes());
+                String msg = Arrays.toString(in.readAllBytes());
+                System.out.println("Received: " + msg);
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            }
-            System.out.println("Received: " + msg);
-        }
-        //start();
-    }
-
-    @Override
-    public void run() {
-        //sendWebSocketFrame("Welcome to the server!");
-        while (true) {
-            try {
-                System.out.println("Waiting for client request...");
-                String msg = readWebSocketFrame();
-                System.out.println("Received: " + msg);
-                sendWebSocketFrame(msg);
-            } catch (IOException e) {
-                disconnect();
-                System.out.println("Client disconnected");
-                e.printStackTrace();
-                break;
-            }
-        }
-    }
-
-    private void disconnect() {
-        try {
-            this.socket.close();
-            this.in.close();
-            this.out.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            }*/
         }
     }
 
@@ -191,6 +140,5 @@ public class ClientHandler extends Thread {
         }catch (Exception e){
 
         }
-
     }
 }
